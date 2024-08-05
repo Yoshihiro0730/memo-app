@@ -6,6 +6,7 @@ import Header from "@/layouts/Header";
 import Sidenav from "@/layouts/Sidenav";
 import ListItem from "../components/ListItem";
 import Modal from "@/components/Modal";
+import DeleteModal from "@/components/DeleteModal";
 
 interface ResistItem {
   id: number;
@@ -18,6 +19,7 @@ const ITEM_PREFIX = 'memo_item_';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const [items, setItems] = useState<ResistItem[]>([]);
 
@@ -28,6 +30,31 @@ export default function Home() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     fetchResistItems();
+  };
+
+  const openDeleteModal = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteModalClose = () => {
+    setIsDeleteModalOpen(false);
+    fetchResistItems();
+  };
+
+  const handleDelete = () => {
+    if (localStorage.length > 0) {
+      try {
+        localStorage.clear();
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    handleDeleteModalClose();
+  };
+
+  const handleComplete = (id: number) => {
+    localStorage.removeItem(`${ITEM_PREFIX}${id}`);
+    setItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
   const fetchResistItems = () => {
@@ -45,22 +72,30 @@ export default function Home() {
               console.error(`Error parsing item with key ${key}:`, error);
             }
           }
-        }
+        } 
       }
       setItems(items);
+    } else {
+      setItems([]);
     }
   }
 
     useEffect(() => {
       fetchResistItems();
-    }, [isModalOpen]);
+    }, [isModalOpen, isDeleteModalOpen]);
 
   return (
     <div className="flex flex-col h-screen">
       <header className="flex w-full"  style={{backgroundColor:"#0052cc"}}>
         <Header />
         <Button onClick={OpenModalHandler}>作成</Button>
+        <Button onClick={openDeleteModal} style={{backgroundColor: 'rgb(203 213 225)'}}>全削除</Button>
         <Modal isOpen={isModalOpen} setIsModalOpen={handleCloseModal}></Modal>
+        <DeleteModal 
+          isOpen={isDeleteModalOpen} 
+          setIsOpen={handleDeleteModalClose}
+          handleAction={handleDelete}
+        />
       </header>
 
       {/* サイドバー実装 */}
@@ -75,7 +110,14 @@ export default function Home() {
             <h1 className="text-2xl font-bold">メモリスト</h1>
           </div>
           {items.map(item => (
-            <ListItem key={item.id} importance={item.priority} title={item.title} />
+            <ListItem 
+              key={item.id} 
+              id={item.id}
+              importance={item.priority} 
+              title={item.title} 
+              context={item.context}
+              onComplete={handleComplete}
+            />
           ))}
         </main>
       </div>
